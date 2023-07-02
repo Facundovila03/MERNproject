@@ -1,9 +1,10 @@
 require("dotenv").config();
-import express from "express";
+import express, { NextFunction, Request, Response } from "express";
 const app = express();
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const morgan = require("morgan");
+import routes from "./routes/notes";
 
 app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
 app.use(bodyParser.json({ limit: "50mb" }));
@@ -23,8 +24,19 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get("/", (req, res) => {
-  res.send("hello word");
+app.use(express.json());
+
+app.use("/api/notes", routes);
+
+app.use((req, res, next) => {
+  next(Error("endpoint not found"));
+});
+
+app.use((error: unknown, req: Request, res: Response, next: NextFunction) => {
+  console.error(error);
+  let errorMessage = "An unkown error ocurred";
+  if (error instanceof Error) errorMessage = error.message;
+  res.status(500).json({ error: errorMessage });
 });
 
 export default app;
