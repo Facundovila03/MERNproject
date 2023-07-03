@@ -5,6 +5,7 @@ const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const morgan = require("morgan");
 import routes from "./routes/notes";
+import createHttpError, { isHttpError } from "http-errors";
 
 app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
 app.use(bodyParser.json({ limit: "50mb" }));
@@ -29,14 +30,18 @@ app.use(express.json());
 app.use("/api/notes", routes);
 
 app.use((req, res, next) => {
-  next(Error("endpoint not found"));
+  next(createHttpError(404, "endpoint not found"));
 });
 
 app.use((error: unknown, req: Request, res: Response, next: NextFunction) => {
   console.error(error);
   let errorMessage = "An unkown error ocurred";
-  if (error instanceof Error) errorMessage = error.message;
-  res.status(500).json({ error: errorMessage });
+  let statusCode: number = 500;
+  if (isHttpError(error)) {
+    statusCode = error.status;
+    errorMessage = error.message;
+  }
+  res.status(statusCode).json({ error: errorMessage });
 });
 
 export default app;
